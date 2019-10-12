@@ -30,12 +30,13 @@ main.main('../tueba_files/dev_gold_prep.mables','../tueba_files/dev_9.1.conll','
 
 ''' IMPORTS '''
 
-import copy, cPickle, operator, re, sys, pdb, os, subprocess
+import copy, pickle, operator, re, sys, pdb, os, subprocess
 from math import ceil,log
 from itertools import combinations
 from collections import defaultdict,Counter
 from verbadicendi import vdic
 import random
+from functools import reduce
 
 # ============================================= #
 
@@ -189,7 +190,7 @@ def get_true_ante(mable,ante_cands_wl,ante_cands_csets):
     """return true antecedent if amongst antecedent candidates"""   
     try:
         #find cset containing the markable. markable is not the first mention in the cset (otherwise no antecedent)
-        coref_id_anaphor=next(x for x,y in coref.items() if mable[1:4] in y and sorted(y).index(mable[1:4])!=0)
+        coref_id_anaphor=next(x for x,y in list(coref.items()) if mable[1:4] in y and sorted(y).index(mable[1:4])!=0)
         all_antes=ante_cands_wl+ante_cands_csets
         all_antes.sort(reverse=True)    #reverse sort to find most recent ante
         true_ante=next(a for a in all_antes if a[1:4] in coref[coref_id_anaphor])         
@@ -270,8 +271,8 @@ def get_lex(m,res,gf=None):
         if lex_unicode+'^'+gf in w2v_model_gf:
             return lex_unicode+'^'+gf
         else:
-            if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss')+'^'+gf in w2v_model_gf:
-                return lex_unicode.replace(unichr(223),'ss')+'^'+gf             
+            if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss')+'^'+gf in w2v_model_gf:
+                return lex_unicode.replace(chr(223),'ss')+'^'+gf             
             if gf=='root' and lex_unicode+'^subj' in w2v_model_gf:
                 return lex_unicode+'^subj'
             #only split if it is not an NE
@@ -281,8 +282,8 @@ def get_lex(m,res,gf=None):
                     lex_unicode=lex_split[0][2]+'^'+gf
                     if lex_unicode in w2v_model_gf: 
                         return lex_unicode
-                    if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss')+'^'+gf in w2v_model_gf:
-                        return lex_unicode.replace(unichr(223),'ss')+'^'+gf       
+                    if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss')+'^'+gf in w2v_model_gf:
+                        return lex_unicode.replace(chr(223),'ss')+'^'+gf       
         return lex_unicode+'^'+gf
     if res=='w2v_model': #need unicode
         try:
@@ -292,8 +293,8 @@ def get_lex(m,res,gf=None):
         if lex_unicode in w2v_model:
             return lex_unicode
         else:
-            if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss') in w2v_model:
-                return lex_unicode.replace(unichr(223),'ss')             
+            if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss') in w2v_model:
+                return lex_unicode.replace(chr(223),'ss')             
             #only split if it is not an NE
             if not (m[4]=='NE' and lex_unicode==m[-1]):                
                 lex_split=compsplit.split_compound(lex_unicode)
@@ -301,8 +302,8 @@ def get_lex(m,res,gf=None):
                     lex_unicode=lex_split[0][2]
                     if lex_unicode in w2v_model: 
                         return lex_unicode
-                    if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss') in w2v_model:
-                        return lex_unicode.replace(unichr(223),'ss')
+                    if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss') in w2v_model:
+                        return lex_unicode.replace(chr(223),'ss')
         return lex_unicode        
     if res=='graph':    #need utf8
         try:
@@ -314,8 +315,8 @@ def get_lex(m,res,gf=None):
         else:
             try:
                 lex=lex.decode('utf8')
-                if unichr(223) in lex and lex.replace(unichr(223),'ss') in G:
-                    return lex.replace(unichr(223),'ss').encode('utf8')        
+                if chr(223) in lex and lex.replace(chr(223),'ss') in G:
+                    return lex.replace(chr(223),'ss').encode('utf8')        
                 if not (m[4]=='NE' and lex==m[-1].decode('utf8')):                    
                     lex_split=compsplit.split_compound(lex)
                     if lex_split[0][0]>0:
@@ -351,8 +352,8 @@ def get_lex_token(lex,res,gf=None):
         if lex_unicode+'^'+gf in w2v_model_gf:
             return lex_unicode+'^'+gf
         else:
-            if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss')+'^'+gf in w2v_model_gf:
-                return lex_unicode.replace(unichr(223),'ss')+'^'+gf             
+            if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss')+'^'+gf in w2v_model_gf:
+                return lex_unicode.replace(chr(223),'ss')+'^'+gf             
             if gf=='root' and lex_unicode+'^subj' in w2v_model_gf:
                 return lex_unicode+'^subj'
             lex_split=compsplit.split_compound(lex_unicode)
@@ -360,8 +361,8 @@ def get_lex_token(lex,res,gf=None):
                 lex_unicode=lex_split[0][2]
                 if lex_unicode+'^'+gf in w2v_model_gf: 
                     return lex_unicode+'^'+gf
-                if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss')+'^'+gf in w2v_model_gf:
-                    return lex_unicode.replace(unichr(223),'ss')+'^'+gf       
+                if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss')+'^'+gf in w2v_model_gf:
+                    return lex_unicode.replace(chr(223),'ss')+'^'+gf       
         return lex_unicode+'^'+gf
     if res=='w2v_model': #need unicode
         try:
@@ -371,15 +372,15 @@ def get_lex_token(lex,res,gf=None):
         if lex_unicode in w2v_model:
             return lex_unicode
         else:
-            if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss') in w2v_model:
-                return lex_unicode.replace(unichr(223),'ss')             
+            if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss') in w2v_model:
+                return lex_unicode.replace(chr(223),'ss')             
             lex_split=compsplit.split_compound(lex_unicode)
             if lex_split[0][0]>0:
                 lex_unicode=lex_split[0][2]
                 if lex_unicode in w2v_model: 
                     return lex_unicode
-                if unichr(223) in lex_unicode and lex_unicode.replace(unichr(223),'ss') in w2v_model:
-                    return lex_unicode.replace(unichr(223),'ss')
+                if chr(223) in lex_unicode and lex_unicode.replace(chr(223),'ss') in w2v_model:
+                    return lex_unicode.replace(chr(223),'ss')
         return lex_unicode                
     if res=='graph':
         try:
@@ -391,8 +392,8 @@ def get_lex_token(lex,res,gf=None):
         else:
             try:
                 lex=lex.decode('utf8')
-                if unichr(223) in lex and lex.replace(unichr(223),'ss') in G:
-                    return lex.replace(unichr(223),'ss').encode('utf8')        
+                if chr(223) in lex and lex.replace(chr(223),'ss') in G:
+                    return lex.replace(chr(223),'ss').encode('utf8')        
                 lex_split=compsplit.split_compound(lex)
                 if lex_split[0][0]>0:
                     lex=lex_split[0][2].encode('utf8')
@@ -713,7 +714,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                                 weight[combined_feature_name]=weights_global[pos][combined_feature_name][combined_feature_values]
                                 #weight.append(weights_global[pos][combined_feature_name][combined_feature_values])    
             if mode=='test':
-                weighted_antes.append([reduce(operator.mul,weight.values()),a,weight])  #product of the weights
+                weighted_antes.append([reduce(operator.mul,list(weight.values())),a,weight])  #product of the weights
                                          
         if mode=='test':
             
@@ -734,7 +735,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                             
                             # Check for additional verb arguments, i.e. construct context
                             if (mable[1],mable[10]) in verbs:  
-                                for v_gf,varg in verbs[mable[1],mable[10]].items():
+                                for v_gf,varg in list(verbs[mable[1],mable[10]].items()):
                                     if v_gf in ['verb','subcat']: continue
                                     if v_gf in ['subj','obja','objd','objp']:
                                         if varg[4]=='NN':        
@@ -823,7 +824,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
 
                                     #"""
                                     # Similarity of ante to additional pper_verb args, i.e. context
-                                    add_args_sim=[ graph.weighted_path(G,lex_utf8,v_arg,gf,v_gf,weight='scount') for v_gf,v_arg in add_args.items() ]        
+                                    add_args_sim=[ graph.weighted_path(G,lex_utf8,v_arg,gf,v_gf,weight='scount') for v_gf,v_arg in list(add_args.items()) ]        
                                     # Take the mean instead of sum to not overweigh add_args_sim feature in the sum below
                                     add_args_sim=np.mean(add_args_sim) if not add_args_sim==[] else 0
                                     verb_features['add_args_sim']=add_args_sim
@@ -856,7 +857,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                                     verb_features['verb_arg_sim']=verb_arg_sim
                                     """
                                     # Mean of all weights
-                                    sim=np.mean(verb_features.values())
+                                    sim=np.mean(list(verb_features.values()))
                                     ante_features[a[0]]=verb_features
                                     reranked_antes.append([sim,a])
                                     
@@ -887,15 +888,15 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                                     # Trace
                                     #"""
                                     if mable[4]=='PPER':
-                                        print '\n\n',mable
-                                        print 'true_ante:\t',true_ante
-                                        print 'sel_ante:\t',ante     
-                                        print 'verb_ante:\t',verb_ante                                
-                                        print add_args
-                                        print pper_verb_cooc1_lemmas[:nbest]
-                                        for x in reranked_antes:print x
-                                        for x,y in ante_features.items(): print x,y                                        
-                                        print ''
+                                        print('\n\n',mable)
+                                        print('true_ante:\t',true_ante)
+                                        print('sel_ante:\t',ante)     
+                                        print('verb_ante:\t',verb_ante)                                
+                                        print(add_args)
+                                        print(pper_verb_cooc1_lemmas[:nbest])
+                                        for x in reranked_antes:print(x)
+                                        for x,y in list(ante_features.items()): print(x,y)                                        
+                                        print('')
                                         pdb.set_trace()
                                     #"""
                                                                         
@@ -921,7 +922,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                             if gf=='objp': gf='pn'
                             context=[]  #build the pronoun's context              
                             if (mable[1],mable[10]) in verbs:  #check for additional verb arguments
-                                for v_gf,varg in verbs[mable[1],mable[10]].items():
+                                for v_gf,varg in list(verbs[mable[1],mable[10]].items()):
                                     if v_gf in ['verb','subcat']: continue
                                     #if v_gf in ['pn', 'subj', 'obja', 'objd']: #only selected args                                    
                                     if varg[4]=='NN':        
@@ -990,7 +991,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                         context=[]
                         add_args_pper_verb={}            
                         if (mable[1],mable[10]) in verbs:  #check for additional verb arguments
-                            for v_gf,varg in verbs[mable[1],mable[10]].items():
+                            for v_gf,varg in list(verbs[mable[1],mable[10]].items()):
                                 if v_gf in ['verb','subcat']: continue
                                 if varg[4]=='NN':
                                     if varg[2] in G: add_args_pper_verb[v_gf]=varg[2]
@@ -1051,7 +1052,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                             if a[8].lower() in ['subj','obja','objd','objp'] and not add_args_pper_verb=={}:
                                 sim_add_args=[]
                                 sim_add_args_tf_idf=[]                
-                                for add_arg_gf,add_arg in add_args_pper_verb.items():
+                                for add_arg_gf,add_arg in list(add_args_pper_verb.items()):
                                     if add_arg_gf in ['subj','obja','objd','objp']:
                                         paths=graph.paths(G, lex_utf8, add_arg, a[8].lower(), add_arg_gf)
                                         sim_add_args.append(len(paths))
@@ -1121,7 +1122,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                         #features: from ante, competitor, and both #TODO test ony both?
                         #instance_str=' '.join([str(x) for x in ante_features[weighted_antes[0][1][0]].values()])+' '
                         #instance_str+=' '.join([str(x) for x in ante_features[weighted_antes[1][1][0]].values()])+' '
-                        instance_str=' '.join([str(x) for x in ante_features['both'].values()])+' '
+                        instance_str=' '.join([str(x) for x in list(ante_features['both'].values())])+' '
                         if verb_postfilter_feature_names==[]:
                             verb_postfilter_feature_names.extend([str(x)+'_both' for x in ante_features['both']])
                         if verb_postfilter=='train':
@@ -1195,15 +1196,15 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
             if not mable[4] in ['NE','NN']:
                 true_ante=get_true_ante(mable,ante_cands,ante_cands_csets)  
                 if not ante==true_ante:
-                    print ''
-                    print mable
-                    print 'true:\t',true_ante            
-                    print 'sel:\t',ante
+                    print('')
+                    print(mable)
+                    print('true:\t',true_ante)            
+                    print('sel:\t',ante)
                     for x in all_antes:
-                        print x
+                        print(x)
                     for x in weighted_antes[:2]:
-                        print x                        
-                    print ''
+                        print(x)                        
+                    print('')
                     if true_ante!=[]:
                         rank=next(weighted_antes.index(x) for x in weighted_antes if x[1]==true_ante)
                         lemma=re.search('[^|]+',mable[-1]).group()
@@ -1284,7 +1285,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                 elif mable[4]=='PDS': 
                     pds_train.append(wapiti_cmd)                            
                 else: 
-                    print 'mable type problem',mable
+                    print('mable type problem',mable)
                     pdb.set_trace()                                 
     
             if mode=='test':
@@ -1329,7 +1330,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                         if out=='\n':
                             break                                         
                 else:
-                    print 'no wapiti classifier for ',mable[4] 
+                    print('no wapiti classifier for ',mable[4]) 
 
                 wapiti_ante_weights=[]         
                 for line in wapiti_res:    #last line is newline, second last is pronoun
@@ -1410,7 +1411,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                     elif mable[4]=='PDS': 
                         pds_train.append(wapiti_cmd)                            
                     else: 
-                        print 'mable type problem',mable
+                        print('mable type problem',mable)
                         pdb.set_trace()     
                         
                 if mode=='test':
@@ -1452,7 +1453,7 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
                             if out=='\n':
                                 break                                         
                     else:
-                        print 'no wapiti classifier for ',mable[4] 
+                        print('no wapiti classifier for ',mable[4]) 
 
                     # format the weight
                     ante_weight=float(re.search('.*(\d\.\d+)$',wapiti_res[1]).group(1))
@@ -1472,31 +1473,15 @@ def get_best(ante_cands,ante_cands_csets,mable,docid):
 
 ''' MAIN LOOP '''
       
-def main(file1,file2='',file3=''): 
+def main(mables_file,conll_file): 
     """
     Main loop
-    train:
-    main('../tueba_files/train_ner.mables.parzu')
     test:
     main('../tueba_files/dev_ner.mables.parzu','../tueba_files/dev_9.1.conll','mle_dev_tmp.res')   #real preprocessing
     main('../tueba_files/dev_gold_prep.mables','../tueba_files/dev_9.1.conll','mle_dev_tmp.res')   #gold preprocessing
     """
     
-    if mode=='train':
-        if not os.path.isfile(file1):
-            print >>sys.stderr,file1,'does not exist'
-            return
-    else:
-        if not os.path.isfile(file1):
-            print >>sys.stderr,file1,'does not exist'
-            return
-        
-        if not os.path.isfile(file2):
-            print >>sys.stderr,file2,'does not exist'
-            return               
-    
-    with open(file1,'r') as f: 
-        docs=f.read()
+    docs = mables_file.read()
     docs=docs.split('####')
     del docs[-1]
 
@@ -1579,11 +1564,6 @@ def main(file1,file2='',file3=''):
     global eval_ante_index
     eval_ante_index=defaultdict(lambda: defaultdict(lambda:defaultdict(int)))
     
-    if mode=='train':
-        print >> sys.stderr,'Training on file',file1
-    if mode=='test':
-        print >> sys.stderr,'Testing on file',file1
-    
     doc_counter=1
                 
     for doc in docs:
@@ -1607,8 +1587,8 @@ def main(file1,file2='',file3=''):
         global wl,csets
         wl,csets=[],[]
 
-        sys.stderr.write('\r'+'doc name: '+str(docid)+'\tdoc counter: '+str(doc_counter))
-        sys.stderr.flush()
+        # sys.stderr.write('\r'+'doc name: '+str(docid)+'\tdoc counter: '+str(doc_counter))
+        # sys.stderr.flush()
         doc_counter+=1
             
         for mable in mables:
@@ -1631,29 +1611,29 @@ def main(file1,file2='',file3=''):
                     #trace resolution
                     if matched==1:
                         try:
-                            mable_cset=next(ID for ID,c in coref.items() if mable[1:4] in c)    #check if it is a true mention
-                            ante_cset=next(ID for ID,c in coref.items() if ante[1:4] in c)
+                            mable_cset=next(ID for ID,c in list(coref.items()) if mable[1:4] in c)    #check if it is a true mention
+                            ante_cset=next(ID for ID,c in list(coref.items()) if ante[1:4] in c)
                             if mable_cset!=ante_cset:
-                                print >>sys.stderr,'\n',docid
-                                print >>sys.stderr,'\nWrong resolution'
-                                print >>sys.stderr,mable,ante
+                                print('\n',docid, file=sys.stderr)
+                                print('\nWrong resolution', file=sys.stderr)
+                                print(mable,ante, file=sys.stderr)
                                 #pdb.set_trace()
                         except StopIteration:
                             pass
-                            print >>sys.stderr,'\n',docid                            
-                            print >>sys.stderr,'\nResolved a non gold mention'
-                            print >>sys.stderr,'ante:',ante,'\nmable:',mable
+                            print('\n',docid, file=sys.stderr)                            
+                            print('\nResolved a non gold mention', file=sys.stderr)
+                            print('ante:',ante,'\nmable:',mable, file=sys.stderr)
                             #pdb.set_trace()
                     else:
                         try:
-                            mable_cset=next(ID for ID,c in coref.items() if mable[1:4] in c)
+                            mable_cset=next(ID for ID,c in list(coref.items()) if mable[1:4] in c)
                             if not coref[mable_cset].index(mable[1:4])==0:
-                                print >>sys.stderr,docid
-                                print >> sys.stderr,'\n','\nUnresolved gold mention'
-                                print >>sys.stderr,mable
-                                print >>sys.stderr,'cset'
+                                print(docid, file=sys.stderr)
+                                print('\n','\nUnresolved gold mention', file=sys.stderr)
+                                print(mable, file=sys.stderr)
+                                print('cset', file=sys.stderr)
                                 for tm in coref[mable_cset]:
-                                    print >>sys.stderr,get_mable(tm) 
+                                    print(get_mable(tm), file=sys.stderr) 
                                 if doc_counter>50:
                                     pdb.set_trace()
                         except StopIteration:
@@ -1827,25 +1807,25 @@ def main(file1,file2='',file3=''):
 
                             """                                
                             try:
-                                cset_cid=next(i for i,j in coref.items() if cset[0][1:4] in j)
-                                nn_cid=next(i for i,j in coref.items() if c[0][1:4] in j)                    
+                                cset_cid=next(i for i,j in list(coref.items()) if cset[0][1:4] in j)
+                                nn_cid=next(i for i,j in list(coref.items()) if c[0][1:4] in j)                    
                                 if not cset_cid==nn_cid:
                                     eval_link_ne_nn_sets['wrong']+=1
-                                    print '\nwrong'
-                                    print cset
-                                    print c                                
+                                    print('\nwrong')
+                                    print(cset)
+                                    print(c)                                
                                     #pdb.set_trace()                                                        
                                 else:
                                     eval_link_ne_nn_sets['correct']+=1
-                                    print '\ncorrect'
-                                    print cset
-                                    print c    
+                                    print('\ncorrect')
+                                    print(cset)
+                                    print(c)    
                                     #pdb.set_trace()                                                        
                             except StopIteration:
                                 eval_link_ne_nn_sets['false_positive']+=1   
-                                print '\nfalse positive'
-                                print cset
-                                print c                                
+                                print('\nfalse positive')
+                                print(cset)
+                                print(c)                                
                                 #pdb.set_trace()     
                             #pdb.set_trace()                                             
                             cset.extend(c)
@@ -1928,7 +1908,7 @@ def main(file1,file2='',file3=''):
         ''' OUTPUT '''
     
         #Output            
-        f=open(file3,'w')
+        output_str=''
         docnr=0
         sent=1        
 
@@ -1952,10 +1932,10 @@ def main(file1,file2='',file3=''):
                         csets[(str(m[1]),str(m[3]),'c')].append(cset_id)  #'c' for close cset                                                     
         mables=res[docid][0]    #TODO make same conversion as above, if singletons are wanted in the output, otherwise it's painfully slow
 
-        for line in open(file2,'r').readlines():
+        for line in conll_file:
             if line=='\n':
                 sent+=1
-                f.write(line)
+                output_str += line
             else:
                 csets_out=[]
                 line=line.strip().split('\t')                                            
@@ -2012,16 +1992,16 @@ def main(file1,file2='',file3=''):
                             mables_out.append(str(m[0]+10000)+')')
                 """
                 if csets_out==[] and mables_out==[]:
-                    f.write('\t'.join(line[0:-1])+'\t-\n')
+                    output_str += '\t'.join(line[0:-1])+'\t-\n'
                 elif csets_out==[] and mables_out!=[]:
-                    f.write('\t'.join(line[0:-1])+'\t'+'|'.join(mables_out))
-                    f.write('\n')
+                    output_str += '\t'.join(line[0:-1])+'\t'+'|'.join(mables_out)
+                    output_str += '\n'
                 elif csets_out!=[] and mables_out==[]:
-                    f.write('\t'.join(line[0:-1])+'\t'+'|'.join(csets_out))
-                    f.write('\n')
+                    output_str += '\t'.join(line[0:-1])+'\t'+'|'.join(csets_out)
+                    output_str += '\n'
                 else:
-                    f.write('\t'.join(line[0:-1])+'\t'+'|'.join(csets_out)+'|'+'|'.join(mables_out))
-                    f.write('\n')
+                    output_str += '\t'.join(line[0:-1])+'\t'+'|'.join(csets_out)+'|'+'|'.join(mables_out)
+                    output_str += '\n'
 
     sys.stderr.write('\n')
 
@@ -2034,7 +2014,7 @@ def main(file1,file2='',file3=''):
     
     if mode=='test' and output_pronoun_eval:
     
-        print >> sys.stderr,'\nPronoun resolution accuracy when true ante is among the candidates\n'
+        print('\nPronoun resolution accuracy when true ante is among the candidates\n', file=sys.stderr)
         
         all_tp,all_true_ante_present,all_cases,all_true_mentions=0,0,0,0            
         
@@ -2053,9 +2033,9 @@ def main(file1,file2='',file3=''):
         
         for pos in eval_all:
             if not pos in ['NN','NE']:  
-                print >> sys.stderr,pos
+                print(pos, file=sys.stderr)
                 pos_tp,pos_true_ante_present,pos_cases,pos_true_mentions=0,0,0,0    # PoS-wide counts
-                for lemma,c in eval_all[pos].items():
+                for lemma,c in list(eval_all[pos].items()):
                     pos_tp+=c['tp']
                     pos_true_ante_present+=c['true_ante_present']
                     pos_cases+=c['instances']
@@ -2063,37 +2043,37 @@ def main(file1,file2='',file3=''):
                     
                     # print eval for selected PoS and lemmas
                     if pos in ['PPER','PPOSAT'] and lemma in ['er','sie','sein','ihr']:    
-                        print >> sys.stderr,lemma+'\t', 
+                        print(lemma+'\t', end=' ', file=sys.stderr) 
                         if not c['true_ante_present']==0:
-                            print >>sys.stderr,"%.2f" % (100*float(c['tp'])/c['true_ante_present']),'% ('+str(c['tp'])+')\t\t',
-                            print >>sys.stderr,'true ante present in '+str(c['true_ante_present'])+' of '+str(c['instances'])+' cases ('+"%.2f" % (100*float(c['true_ante_present'])/c['instances'])+'%),',
+                            print("%.2f" % (100*float(c['tp'])/c['true_ante_present']),'% ('+str(c['tp'])+')\t\t', end=' ', file=sys.stderr)
+                            print('true ante present in '+str(c['true_ante_present'])+' of '+str(c['instances'])+' cases ('+"%.2f" % (100*float(c['true_ante_present'])/c['instances'])+'%),', end=' ', file=sys.stderr)
                             if not pos_true_mentions==0:
-                                print >>sys.stderr,c['true_mention'],'true mentions ('+"%.2f" % (100*float(pos_true_ante_present)/pos_true_mentions)+'%)'
+                                print(c['true_mention'],'true mentions ('+"%.2f" % (100*float(pos_true_ante_present)/pos_true_mentions)+'%)', file=sys.stderr)
                             else:
-                                print >>sys.stderr,c['true_mention'],'true mentions'
+                                print(c['true_mention'],'true mentions', file=sys.stderr)
                         else:
-                            print >>sys.stderr,'\t\tno true ante in '+str(c['instances'])+' cases,',c['true_mention'],'true mentions'
+                            print('\t\tno true ante in '+str(c['instances'])+' cases,',c['true_mention'],'true mentions', file=sys.stderr)
                 acc=(100*float(pos_tp)/pos_true_ante_present) if not pos_true_ante_present==0 else 0.
                 accuracies[pos]=acc                            
-                print >>sys.stderr,'ALL:\t',"%.2f" % (acc),'% ('+str(pos_tp)+')\t\t',
+                print('ALL:\t',"%.2f" % (acc),'% ('+str(pos_tp)+')\t\t', end=' ', file=sys.stderr)
                 #print >>sys.stderr,'ALL:\t',"%.2f" % (100*float(pos_tp)/pos_true_ante_present),'% ('+str(pos_tp)+')\t\t',
-                print >>sys.stderr,'true ante present in '+str(pos_true_ante_present)+' of '+str(pos_cases)+' cases ('+"%.2f" % (100*float(pos_true_ante_present)/pos_cases)+'%),',
+                print('true ante present in '+str(pos_true_ante_present)+' of '+str(pos_cases)+' cases ('+"%.2f" % (100*float(pos_true_ante_present)/pos_cases)+'%),', end=' ', file=sys.stderr)
                 acc2=100*float(pos_true_ante_present)/pos_true_mentions if not pos_true_mentions==0 else 0
-                print >>sys.stderr,pos_true_mentions,'true mentions ('+"%.2f" % (acc2)+'%)'             
+                print(pos_true_mentions,'true mentions ('+"%.2f" % (acc2)+'%)', file=sys.stderr)             
                 all_tp+=pos_tp
                 all_true_ante_present+=pos_true_ante_present
                 all_cases+=pos_cases
                 all_true_mentions+=pos_true_mentions
-                print >>sys.stderr,''                
+                print('', file=sys.stderr)                
                 
         accuracies['ALL']=100*float(all_tp)/all_true_ante_present                
-        print >>sys.stderr,'OVERALL:\t',"%.2f" % (100*float(all_tp)/all_true_ante_present),'% ('+str(all_tp)+')\t\t',
-        print >>sys.stderr,'true ante present in '+str(all_true_ante_present)+' of '+str(all_cases)+' cases ('+"%.2f" % (100*float(all_true_ante_present)/all_cases)+'%),',
-        print >>sys.stderr,all_true_mentions,'true mentions ('+"%.2f" % (100*float(all_true_ante_present)/all_true_mentions)+'%)'
+        print('OVERALL:\t',"%.2f" % (100*float(all_tp)/all_true_ante_present),'% ('+str(all_tp)+')\t\t', end=' ', file=sys.stderr)
+        print('true ante present in '+str(all_true_ante_present)+' of '+str(all_cases)+' cases ('+"%.2f" % (100*float(all_true_ante_present)/all_cases)+'%),', end=' ', file=sys.stderr)
+        print(all_true_mentions,'true mentions ('+"%.2f" % (100*float(all_true_ante_present)/all_true_mentions)+'%)', file=sys.stderr)
 
-        print '\nLaTeX output:'
-        for pos in ['PPER','PPOSAT','PRELS','PDS','PRELAT','ALL']: print '&', "%.2f" % accuracies[pos],
-        print '\\\\' 
+        print('\nLaTeX output:')
+        for pos in ['PPER','PPOSAT','PRELS','PDS','PRELAT','ALL']: print('&', "%.2f" % accuracies[pos], end=' ')
+        print('\\\\') 
         
         #cPickle.dump(single_ante_counts,open('single_ante_counts.cpkl','w'))
         #cPickle.dump(avg_ante_counts,open('avg_ante_counts.cpkl','w'))  
@@ -2124,28 +2104,23 @@ def main(file1,file2='',file3=''):
         f.write('@DATA\n')
         f.write('\n'.join(verb_postfilter_str))
         f.close()        
-        print >>sys.stderr,'verb_postfilter_cnt:',verb_postfilter_cnt
+        print('verb_postfilter_cnt:',verb_postfilter_cnt, file=sys.stderr)
     if verb_postfilter=='test':
         tmp=wapiti_verb_postfilter.communicate()    #close it
-        print >>sys.stderr,'verb_postfilter_cnt:',verb_postfilter_cnt
+        print('verb_postfilter_cnt:',verb_postfilter_cnt, file=sys.stderr)
 
     if link_ne_nn_sets:
-        print >>sys.stderr,'eval_link_ne_nn_sets',dict(eval_link_ne_nn_sets)
+        print('eval_link_ne_nn_sets',dict(eval_link_ne_nn_sets), file=sys.stderr)
 
     if verb_postfilter_context_w2v or verb_postfilter_context_graph:
-        print >>sys.stderr,'\n'
-        for pos,lemmas in accuracy.items():
-            print >>sys.stderr,pos
-            for lemma,counts in lemmas.items():
-                print >>sys.stderr,'\t',lemma,'\t',
-                for k in sorted(counts): print >>sys.stderr,k+':',counts[k],'\t',
-                print >>sys.stderr,'total:',sum(counts.values())
-                print >>sys.stderr,'\t\tbaseline acc:',"%.2f" % (100.*float(counts['baseline correct']+counts['both correct']) / sum(counts.values())),'%',
-                print >>sys.stderr,'verb_sel acc:',"%.2f" % (100.*float(counts['verb_sel correct']+counts['both correct']) / sum(counts.values())),'%',
-                print >>sys.stderr,'upper bound:',"%.2f" % (100.*float(counts['baseline correct']+counts['both correct']+counts['verb_sel correct']) / sum(counts.values())),'%'
-
-# ============================================= #    
-
-if __name__ == '__main__':
-    if mode=='train': main(sys.argv[1])
-    else: main(sys.argv[1],sys.argv[2],sys.argv[3])
+        print('\n', file=sys.stderr)
+        for pos,lemmas in list(accuracy.items()):
+            print(pos, file=sys.stderr)
+            for lemma,counts in list(lemmas.items()):
+                print('\t',lemma,'\t', end=' ', file=sys.stderr)
+                for k in sorted(counts): print(k+':',counts[k],'\t', end=' ', file=sys.stderr)
+                print('total:',sum(counts.values()), file=sys.stderr)
+                print('\t\tbaseline acc:',"%.2f" % (100.*float(counts['baseline correct']+counts['both correct']) / sum(counts.values())),'%', end=' ', file=sys.stderr)
+                print('verb_sel acc:',"%.2f" % (100.*float(counts['verb_sel correct']+counts['both correct']) / sum(counts.values())),'%', end=' ', file=sys.stderr)
+                print('upper bound:',"%.2f" % (100.*float(counts['baseline correct']+counts['both correct']+counts['verb_sel correct']) / sum(counts.values())),'%', file=sys.stderr)
+    return output_str

@@ -7,7 +7,7 @@ get subcategorisation frame for each verb
 
 import pdb
 import sys
-import cPickle
+import pickle
 
 #global vvpp_sein_exclussive
 #vvpp_sein_exclussive=cPickle.load(open('vvpp_sein_exclussive.cpkl','r'))
@@ -113,7 +113,7 @@ def get_subcat(frames,sent):
     subcats = {}
     for frame in frames:
         frame_tok_id = str(frame[1])
-        subcat = list( set( frames[frame].keys()+[t[7] for t in sent if t[6] == frame_tok_id] ) )
+        subcat = list( set( list(frames[frame].keys())+[t[7] for t in sent if t[6] == frame_tok_id] ) )
         if 'subj' in subcat:
             subcat.remove('subj')   # we assume subject for every verb
         if 'objd' in subcat and 'objd' in frames[frame] and frames[frame]['objd'][4] == 'PRF':  # reflexives
